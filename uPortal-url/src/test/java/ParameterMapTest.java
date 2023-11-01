@@ -12,8 +12,8 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apereo.portal.url;
 
+import org.apereo.portal.url.ParameterMap;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -25,13 +25,14 @@ import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 
-
-/** */
+/**
+ *
+ */
 public class ParameterMapTest {
     @Test
     public void testParameterMapClone() {
         final ParameterMap m1 = new ParameterMap();
-        m1.put("foo", new String[] {"b1", "b2"});
+        m1.put("foo", new String[]{"b1", "b2"});
         m1.put("bar", new String[0]);
 
         final ParameterMap m2 = new ParameterMap(m1);
@@ -51,7 +52,7 @@ public class ParameterMapTest {
     }
 
     /**
-     * @author snehitroda
+     * @author snehit
      */
     @Test
     public void testConvertListMapWithValues() {
@@ -66,7 +67,7 @@ public class ParameterMapTest {
     }
 
     /**
-     * @author snehitroda
+     * @author snehit
      */
     @Test
     public void testConvertListMapWithNoValues() {
@@ -81,7 +82,7 @@ public class ParameterMapTest {
     }
 
     /**
-     * @author snehitroda
+     * @author snehit
      */
     @Test
     public void testConvertListMapNullInput() {

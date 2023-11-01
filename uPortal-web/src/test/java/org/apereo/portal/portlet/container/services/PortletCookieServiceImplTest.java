@@ -14,10 +14,6 @@
  */
 package org.apereo.portal.portlet.container.services;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.servlet.http.Cookie;
 import org.apereo.portal.portlet.dao.IPortletCookieDao;
 import org.apereo.portal.portlet.om.IPortalCookie;
 import org.apereo.portal.portlet.om.IPortletCookie;
@@ -25,12 +21,146 @@ import org.apereo.portal.portlet.om.IPortletWindowId;
 import org.easymock.EasyMock;
 import org.joda.time.DateTime;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-/** Tests for {@link PortletCookieServiceImpl}. */
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.*;
+
+/**
+ * Tests for {@link PortletCookieServiceImpl}.
+ */
 public class PortletCookieServiceImplTest {
+
+    @Mock
+    private HttpServletRequest request;
+    @Mock
+    private HttpSession session;
+    @Mock
+    private IPortalCookie portalCookie;
+    @Mock
+    private IPortletCookie portletCookie;
+    @Mock
+    private SessionOnlyPortletCookieImpl sessionOnlyCookie;
+
+
+    @Before
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
+
+    }
+
+
+//    @Test
+//    public void testGetAllPortletCookies() {
+//        // Arrange
+//        IPortletWindowId portletWindowId = mock(IPortletWindowId.class);
+//        IPortletCookie portletCookie = mock(IPortletCookie.class);
+//
+//        Cookie[] servletCookies = {
+//            new Cookie("cookie1", "value1"),
+//            new Cookie("cookie2", "value2")
+//        };
+//
+//        // Mock the portalCookie to return valid data
+//
+//        Set<IPortletCookie> portletCookies = new HashSet<>(Collections.singletonList(portletCookie));
+//        when(portalCookie.getPortletCookies()).thenReturn(portletCookies);
+//
+//        // Mock sessionOnlyPortletCookieMap
+//        Map<String, SessionOnlyPortletCookieImpl> sessionOnlyPortletCookieMap = new HashMap<>();
+//        SessionOnlyPortletCookieImpl sessionOnlyCookie = mock(SessionOnlyPortletCookieImpl.class);
+//
+//        sessionOnlyPortletCookieMap.put("sessionCookie", sessionOnlyCookie);
+//
+//        // Mock PortletCookieServiceImpl and set expectations
+//        PortletCookieServiceImpl portletCookieService = new PortletCookieServiceImpl();
+//        when(request.getSession()).thenReturn(session);
+//        when(portletCookieService.getPortalCookie(request)).thenReturn(portalCookie);
+//        when(portletCookieService.getSessionOnlyPortletCookieMap(request)).thenReturn(sessionOnlyPortletCookieMap);
+//
+//        // Act
+//        Cookie[] result = portletCookieService.getAllPortletCookies(request, portletWindowId);
+//
+//        // Assert
+//        assertNotNull(result);
+//
+//        // You expect three cookies, so create an array with the expected cookies
+//        Cookie[] expectedCookies = new Cookie[]{
+//            new Cookie("cookie1", "value1"),
+//            new Cookie("cookie2", "value2"),
+//            sessionOnlyCookie.toCookie()
+//        };
+//
+//        // Assert that the expected and actual arrays have the same length and content
+//        assertArrayEquals(expectedCookies, result);
+//    }
+
+    /**
+     * validates the GetAllPortletCookies by verfting the cookie size generated
+     * @author snehit
+     */
+    @Test
+    public void testGetAllPortletCookies() {
+        // Arrange
+        IPortletWindowId portletWindowId = mock(IPortletWindowId.class);
+        Cookie[] servletCookies = {new Cookie("cookie1", "value1"), new Cookie("cookie2", "value2")};
+        when(request.getCookies()).thenReturn(servletCookies);
+
+        IPortalCookie portalCookie = mock(IPortalCookie.class);
+
+        PortletCookieServiceImpl portletCookieService = new PortletCookieServiceImpl();
+        PortletCookieServiceImpl portletCookieServiceMock = mock(PortletCookieServiceImpl.class);
+
+        when(request.getSession()).thenReturn(session);
+        when(portletCookieServiceMock.getPortalCookie(request)).thenReturn(portalCookie);
+
+
+        Cookie convertedCookie = new Cookie("convertedCookie", "convertedValue");
+
+        when(portletCookieServiceMock.convertToCookie(any(IPortalCookie.class), anyBoolean())).thenReturn(convertedCookie);
+
+
+        when(portletCookie.getExpires()).thenReturn(DateTime.now().plusHours(1));
+
+        Set<IPortletCookie> portletCookies = new HashSet<>(Collections.singletonList(portletCookie));
+        when(portalCookie.getPortletCookies()).thenReturn(portletCookies);
+
+        Map<String, SessionOnlyPortletCookieImpl> sessionOnlyPortletCookieMap = mock(Map.class);
+
+        when(portletCookieServiceMock.getSessionOnlyPortletCookieMap(request)).thenReturn(sessionOnlyPortletCookieMap);
+
+
+        when(sessionOnlyCookie.getExpires()).thenReturn(DateTime.now().plusHours(1));
+        when(sessionOnlyCookie.toCookie()).thenReturn(new Cookie("sessionCookie", "sessionValue"));
+        when(sessionOnlyPortletCookieMap.values()).thenReturn(Collections.singletonList(sessionOnlyCookie));
+
+        // Act
+        Cookie[] result = portletCookieService.getAllPortletCookies(request, portletWindowId);
+        int actualCookieSize = result.length;
+
+        // Assert
+        assertNotNull(result);
+
+        Cookie[] expectedCookies = {convertedCookie, sessionOnlyCookie.toCookie()};
+        int expectedCookieSize = expectedCookies.length;
+
+        //assert
+        assertEquals(expectedCookieSize, actualCookieSize);
+    }
 
     /**
      * Control test invocation of {@link
@@ -44,13 +174,13 @@ public class PortletCookieServiceImplTest {
         MockPortalCookie portalCookie = new MockPortalCookie();
         portalCookie.setValue("ABCDEF");
         EasyMock.expect(
-                        portletCookieDao.createPortalCookie(
-                                PortletCookieServiceImpl.DEFAULT_MAX_AGE))
-                .andReturn(portalCookie);
+                portletCookieDao.createPortalCookie(
+                    PortletCookieServiceImpl.DEFAULT_MAX_AGE))
+            .andReturn(portalCookie);
         EasyMock.expect(
-                        portletCookieDao.updatePortalCookieExpiration(
-                                portalCookie, PortletCookieServiceImpl.DEFAULT_MAX_AGE))
-                .andReturn(portalCookie);
+                portletCookieDao.updatePortalCookieExpiration(
+                    portalCookie, PortletCookieServiceImpl.DEFAULT_MAX_AGE))
+            .andReturn(portalCookie);
         EasyMock.replay(portletCookieDao);
 
         PortletCookieServiceImpl cookieService = new PortletCookieServiceImpl();
@@ -61,8 +191,8 @@ public class PortletCookieServiceImplTest {
         cookieService.updatePortalCookie(request, response);
 
         Cookie[] cookies = response.getCookies();
-        Assert.assertNotNull(cookies);
-        Assert.assertEquals(1, cookies.length);
+        assertNotNull(cookies);
+        assertEquals(1, cookies.length);
         EasyMock.verify(portletCookieDao);
     }
 
@@ -256,7 +386,9 @@ public class PortletCookieServiceImplTest {
         EasyMock.verify(portletCookieDao, mockWindowId);
     }
 
-    /** Mock {@link IPortalCookie} used in these tests. */
+    /**
+     * Mock {@link IPortalCookie} used in these tests.
+     */
     class MockPortalCookie implements IPortalCookie {
 
         private DateTime created = DateTime.now();
@@ -269,19 +401,13 @@ public class PortletCookieServiceImplTest {
             return this.created;
         }
 
+        public void setCreated(DateTime created) {
+            this.created = created;
+        }
+
         @Override
         public DateTime getExpires() {
             return this.expires;
-        }
-
-        @Override
-        public Set<IPortletCookie> getPortletCookies() {
-            return this.portletCookies;
-        }
-
-        @Override
-        public String getValue() {
-            return this.value;
         }
 
         @Override
@@ -289,12 +415,18 @@ public class PortletCookieServiceImplTest {
             this.expires = expires;
         }
 
-        public void setCreated(DateTime created) {
-            this.created = created;
+        @Override
+        public Set<IPortletCookie> getPortletCookies() {
+            return this.portletCookies;
         }
 
         public void setPortletCookies(Set<IPortletCookie> portletCookies) {
             this.portletCookies = portletCookies;
+        }
+
+        @Override
+        public String getValue() {
+            return this.value;
         }
 
         public void setValue(String value) {

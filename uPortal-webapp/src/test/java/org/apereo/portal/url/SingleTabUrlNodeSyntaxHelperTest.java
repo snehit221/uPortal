@@ -14,10 +14,11 @@
  */
 package org.apereo.portal.url;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.when;
-
+import org.apereo.portal.IUserPreferencesManager;
+import org.apereo.portal.layout.IStylesheetUserPreferencesService;
+import org.apereo.portal.layout.IStylesheetUserPreferencesService.PreferencesScope;
+import org.apereo.portal.layout.IUserLayoutManager;
+import org.apereo.portal.layout.node.IUserLayoutNodeDescription;
 import org.apereo.portal.mock.portlet.om.MockPortletEntityId;
 import org.apereo.portal.mock.portlet.om.MockPortletWindowId;
 import org.apereo.portal.portlet.om.IPortletDefinition;
@@ -28,12 +29,18 @@ import org.apereo.portal.portlet.registry.IPortletEntityRegistry;
 import org.apereo.portal.portlet.registry.IPortletWindowRegistry;
 import org.apereo.portal.user.IUserInstance;
 import org.apereo.portal.user.IUserInstanceManager;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.mock.web.MockHttpServletRequest;
+
+import java.util.*;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 /** */
 @RunWith(MockitoJUnitRunner.class)
@@ -48,6 +55,16 @@ public class SingleTabUrlNodeSyntaxHelperTest {
     @Mock IPortletDefinition portletDefinition;
     @Mock IPortletEntity portletEntity;
     @Mock IPortletWindow portletWindow;
+    @Mock
+    private IStylesheetUserPreferencesService stylesheetUserPreferencesService;
+    @Mock
+    private IUserPreferencesManager preferencesManager;
+    @Mock
+    private IUserLayoutManager userLayoutManager;
+    @Mock
+    private IUserLayoutNodeDescription node;
+
+
 
     @Test
     public void getPortletForFolderNameFanmeIdTest() {
@@ -72,6 +89,119 @@ public class SingleTabUrlNodeSyntaxHelperTest {
         assertNotNull(parsedPortletWindowId);
         assertEquals(portletWindowId, parsedPortletWindowId);
     }
+
+    @Test
+    public void testGetLayoutNodeForNullFolderNames() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        assertNull(urlNodeSyntaxHelper.getLayoutNodeForFolderNames(request, null));
+    }
+
+    @Test
+    public void testGetLayoutNodeForEmptyFolderNames() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        List<String> emptyList = Collections.emptyList();
+        assertNull(urlNodeSyntaxHelper.getLayoutNodeForFolderNames(request, emptyList));
+    }
+
+    @Test
+    public void testGetLayoutNodeForSingleFolderName() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        String folderName = "folder1";
+        List<String> folderNames = Collections.singletonList(folderName);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("node1", "folder1");
+        when(stylesheetUserPreferencesService.getAllNodesAndValuesForAttribute(
+            request, PreferencesScope.STRUCTURE, SingleTabUrlNodeSyntaxHelper.EXTERNAL_ID_ATTR))
+            .thenReturn(attributes);
+
+       // final IUserInstance userInstance =  userInstanceManager.getUserInstance(request);
+
+        //preferencesManager = userInstance.getPreferencesManager();
+
+        //final IUserLayoutManager userLayoutManager = preferencesManager.getUserLayoutManager();
+
+        when(userInstance.getPreferencesManager()).thenReturn(preferencesManager);
+
+        when(preferencesManager.getUserLayoutManager()).thenReturn(userLayoutManager);
+//        node.setName("node1");
+//        node.setId("node1");
+
+        when(userLayoutManager.getNode("folder1")).thenReturn(node);
+
+//        IUserLayoutNodeDescription expectedNode = mock(IUserLayoutNodeDescription.class);
+//        when(userLayoutManager.getNode("node1")).thenReturn(expectedNode);
+
+        String result = urlNodeSyntaxHelper.getLayoutNodeForFolderNames(request, folderNames);
+        assertNull(result);
+    }
+
+    @Test
+    public void testGetLayoutNodeForCompoundFolderName() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        String compoundFolderName = "folder1:node1";
+        List<String> folderNames = Collections.singletonList(compoundFolderName);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("node1", "folder1");
+        when(stylesheetUserPreferencesService.getAllNodesAndValuesForAttribute(
+            request, PreferencesScope.STRUCTURE, SingleTabUrlNodeSyntaxHelper.EXTERNAL_ID_ATTR))
+            .thenReturn(attributes);
+
+        String result = urlNodeSyntaxHelper.getLayoutNodeForFolderNames(request, folderNames);
+
+        assertEquals("node1", result);
+    }
+
+    @Test
+    public void testGetLayoutNodeForMultipleFolderNames() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        List<String> folderNames = Arrays.asList("folder1", "folder2");
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("node1", "folder1");
+        attributes.put("node2", "folder2");
+        when(stylesheetUserPreferencesService.getAllNodesAndValuesForAttribute(
+            request, PreferencesScope.STRUCTURE, SingleTabUrlNodeSyntaxHelper.EXTERNAL_ID_ATTR))
+            .thenReturn(attributes);
+
+        String result = urlNodeSyntaxHelper.getLayoutNodeForFolderNames(request, folderNames);
+
+        assertEquals("node1", result);
+    }
+
+    @Test
+    public void testGetLayoutNodeForCompoundAndSingleFolderNames() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        List<String> folderNames = Arrays.asList("folder1:node1", "folder2");
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("node1", "folder1");
+        attributes.put("node2", "folder2");
+        when(stylesheetUserPreferencesService.getAllNodesAndValuesForAttribute(
+            request, PreferencesScope.STRUCTURE, SingleTabUrlNodeSyntaxHelper.EXTERNAL_ID_ATTR))
+            .thenReturn(attributes);
+
+        String result = urlNodeSyntaxHelper.getLayoutNodeForFolderNames(request, folderNames);
+
+        assertEquals("node1", result);
+    }
+
+    @Test
+    public void testGetLayoutNodeForUnmatchedFolderNames() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        List<String> folderNames = Collections.singletonList("unmatchedFolder");
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("node1", "folder1");
+        attributes.put("node2", "folder2");
+        when(stylesheetUserPreferencesService.getAllNodesAndValuesForAttribute(
+            request, PreferencesScope.STRUCTURE, SingleTabUrlNodeSyntaxHelper.EXTERNAL_ID_ATTR))
+            .thenReturn(attributes);
+
+        assertNull(urlNodeSyntaxHelper.getLayoutNodeForFolderNames(request, folderNames));
+    }
+
 
     @Test
     public void getPortletForFolderNameFnameTest() {

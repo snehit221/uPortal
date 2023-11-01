@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository("entityTypes")
 public class EntityTypes {
 
-    private static final RowMapper<Class<?>> CLASS_ROW_MAPPER =
+    public static final RowMapper<Class<?>> CLASS_ROW_MAPPER =
             new RowMapper<Class<?>>() {
 
                 private final Logger logger = LoggerFactory.getLogger(getClass());
